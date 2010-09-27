@@ -249,6 +249,7 @@
 	     "usr/*/se*" ["sed" "segedit" "sendmail"]
 	     "*/*/a*"    ["awk" "arp"]
 	     "**/s*a*"   ["share" "samba" "sendmail"]
+	     "**AA"      []
 	     "*/*/*/*"   ["man1" "man2" "man3"]))
       (rm-rf deep-dir :silently))
     (rm-rf dir :silently)))

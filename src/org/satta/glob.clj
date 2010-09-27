@@ -90,14 +90,16 @@
     (let [childs (if (= (.getPath dir) ".")
 		   (list-files-nodot dir)
 		   (.listFiles dir))
-	  childs (filter #(re-matches re (.getName %)) childs)]
+	  childs (filter #(re-matches re (.getName %)) childs)
+	  amI?   (or (= (.toString re) "(?=[^\\.])[^/]*[^/]*")
+		     (re-matches re (.getName dir)))]
       (if (= childs ())
-	{1 [dir]}
+	(if amI? {1 [dir]} {})
 	(let [rank-childs (reduce val-merge 
 				  (map #(inner % re) childs))]
-	  (if (= (.toString re) "(?=[^\\.])[^/]*[^/]*")
-	    (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])
-	    rank-childs))))))
+	  (if amI?
+	    (assoc rank-childs (inc (apply max (keys rank-childs))) [dir]))
+	    rank-childs)))))
 
 (defn- matching [re dir n]
   (cond
