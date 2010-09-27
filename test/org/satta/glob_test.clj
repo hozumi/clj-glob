@@ -66,27 +66,27 @@
          "foo.[c-h]"   "foo.i")))
 
 (in-ns 'org.satta.glob)
-(require '[clojure.test :as test])
+(use '[clojure.test])
 
-(test/deftest test-abs-path?
-  (test/testing "abs-path? function test"
-    (test/are [expected path] (= expected (abs-path? path))
+(deftest test-abs-path?
+  (testing "abs-path? function test"
+    (are [expected path] (= expected (abs-path? path))
 	      true "/"
 	      true "/user/home"
 	      false "*"
 	      false "~"
 	      false "lib")
     (if (= \\ (File/separatorChar))
-      (test/testing "abs-path? test on windows"
-	(test/are [expected path] (= expected (abs-path? path))
+      (testing "abs-path? test on windows"
+	(are [expected path] (= expected (abs-path? path))
 		  true "c:/clojure"
 		  true "d:/*"
 		  true "/home"
 		  false "~"
 		  false "lib")))))
 
-(test/deftest test-start-dir
-  (test/are [expected path] (= expected (.getPath (start-dir path)))
+(deftest test-start-dir
+  (are [expected path] (= expected (.getPath (start-dir path)))
 	    "/"  "/usr/bin/*"
 	    "."  "l*/*"
 	    "."  "../"))
@@ -248,6 +248,7 @@
 	     "usr/*"     ["bin" "lib" "sbin" "share"]
 	     "usr/*/se*" ["sed" "segedit" "sendmail"]
 	     "*/*/a*"    ["awk" "arp"]
+	     "**/s*a*"   ["share" "samba" "sendmail"]
 	     "*/*/*/*"   ["man1" "man2" "man3"]))
       (rm-rf deep-dir :silently))
     (rm-rf dir :silently)))
