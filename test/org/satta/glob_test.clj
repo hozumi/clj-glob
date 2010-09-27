@@ -109,7 +109,8 @@
 	  (listFiles [] childs))
 	(proxy [File] [dir-name]
 	  (listFiles [] childs))))
-    (File. path node)))
+    (proxy [File] [path node]
+      (listFiles [] nil))))
 
 (deftest test-mock-fs
   (let [fs (mock-fs ["fiz" ["foo" "subfoo1" "subfoo2"] "bar" "baz"])]
@@ -207,6 +208,16 @@
        ["share"
 	["man" "man1" "man2" "man3"]]]])
 
+(def deep-fs2
+     ["deep2"
+      ["src"
+       ["org" "c.clj"]
+       "b.clj"]
+      ["lib" "A.jar"
+       ["dev" "B.jar"]
+       ["lab" ["lob"]]]
+      "a.clj"])
+
 (deftest test-glob
   (let [dir-name (str (System/getProperty "java.io.tmpdir")
 		      "org.satta.glob-test/")
@@ -252,4 +263,14 @@
 	     "**AA"      []
 	     "*/*/*/*"   ["man1" "man2" "man3"]))
       (rm-rf deep-dir :silently))
+    (let [deep-dir2 (mk-tmpfs dir deep-fs2)]
+      (testing "Deep (multi-level) matching2"
+	(are [pattern files] (= (map #(.getName %)
+				     (glob (str dir-name (first deep-fs2)
+						"/"  pattern)))
+				files)
+	     "**clj"     ["a.clj"]
+	     "**/*clj"   ["a.clj" "b.clj" "c.clj"]
+	     "l**"       ["lib" "lab" "lob"]))
+      (rm-rf deep-dir2 :silently))
     (rm-rf dir :silently)))

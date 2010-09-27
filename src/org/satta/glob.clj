@@ -98,8 +98,8 @@
 	(let [rank-childs (reduce val-merge 
 				  (map #(inner % re) childs))]
 	  (if amI?
-	    (assoc rank-childs (inc (apply max (keys rank-childs))) [dir]))
-	    rank-childs)))))
+	    (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])
+	    rank-childs))))))
 
 (defn- matching [re dir n]
   (cond
