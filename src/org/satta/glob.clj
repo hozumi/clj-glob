@@ -129,7 +129,7 @@
   [pattern & opt]
   (let [ignore-case? (some #{:i} opt)
 	dot-fair? (some #{:a} opt)
-	ret-path? (some #{:path} opt)
+	ret-path? (some #{:s} opt)
 	abs-path? (abs-path? pattern)
         start-dir (start-dir pattern)
         splitted  (.split (if abs-path? (subs pattern (first-slash pattern)) pattern) "/")

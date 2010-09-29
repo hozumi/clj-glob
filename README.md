@@ -9,7 +9,7 @@ Finds files based on glob patterns like `"*.jpg"` or `"/usr/*/se*"`. Similar to 
     (glob "*.{jpg,gif}")
     => (#<File cat.jpg> #<File dog.gif>)
     
-    (glob "*.{jpg,gif}" :path)  ; return string of path by adding :path option
+    (glob "*.{jpg,gif}" :s)  ; return string of path by adding :s option
     => ("cat.jpg" "dog.gif")
     
     (glob "*.JPG" :i)  ; ignore case.
