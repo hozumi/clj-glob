@@ -3,11 +3,10 @@
 	    [clojure.set :as set :only [union]])
   (:import [java.io File]))
 
-(defn- case-helper [c ignore-case?]
+(defn- case-ignore [c]
   (let [i (int c)
 	d (- (int \a) (int \A))]
     (cond
-     (not ignore-case?)  c
      (<= (int \A) i (int \Z)) (str "[" c "|" (char (+ i d)) "]")
      (<= (int \a) i (int \z)) (str "[" c "|" (char (- i d)) "]")
      :else c)))
@@ -17,24 +16,25 @@
   [s ignore-case? dot-fair?]
   (if (or (= ".." s) (= "." s) (= "~" s))
     s
-    (loop [st s
-	   re ""
-	   curly-depth 0]
-      (let [c (if-let [c (first st)] (char c) nil)
-	    j (if-let [j (second st)] (char j) nil)
-	    nex (rest st)]
-	(cond
-	 (= c nil) (re-pattern (str (if (or dot-fair? (= \. (first s)))
-				      "" "(?=[^\\.])") re))
-	 (= c \\) (recur (rest nex) (str re c j) curly-depth)
-	 (= c \/) (recur nex (str re (if (= \. j) c "/(?=[^\\.])")) curly-depth)
-	 (= c \*) (recur nex (str re "[^/]*") curly-depth)
-	 (= c \?) (recur nex (str re "[^/]") curly-depth)
-	 (= c \{) (recur nex (str re \() (inc curly-depth))
-	 (= c \}) (recur nex (str re \)) (dec curly-depth))
-	 (and (= c \,) (< 0 curly-depth)) (recur nex (str re \|) curly-depth)
-	 (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (str re \\ c) curly-depth)
-	 :else (recur nex (str re (case-helper c ignore-case?)) curly-depth))))))
+    (let [case-fix-fn (if ignore-case? case-ignore identity)]
+      (loop [st s
+	     re ""
+	     curly-depth 0]
+	(let [c (if-let [c (first st)] (char c) nil)
+	      j (if-let [j (second st)] (char j) nil)
+	      nex (rest st)]
+	  (cond
+	   (= c nil) (re-pattern (str (if (or dot-fair? (= \. (first s)))
+					"" "(?=[^\\.])") re))
+	   (= c \\) (recur (rest nex) (str re c j) curly-depth)
+	   (= c \/) (recur nex (str re (if (= \. j) c "/(?=[^\\.])")) curly-depth)
+	   (= c \*) (recur nex (str re "[^/]*") curly-depth)
+	   (= c \?) (recur nex (str re "[^/]") curly-depth)
+	   (= c \{) (recur nex (str re \() (inc curly-depth))
+	   (= c \}) (recur nex (str re \)) (dec curly-depth))
+	   (and (= c \,) (< 0 curly-depth)) (recur nex (str re \|) curly-depth)
+	   (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (str re \\ c) curly-depth)
+	   :else (recur nex (str re (case-fix-fn c)) curly-depth)))))))
 
 (defn- abs-path?
   "Returns true if the specified path is absolute, false otherwise."
