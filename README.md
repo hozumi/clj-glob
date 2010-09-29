@@ -37,7 +37,7 @@ Finds files based on glob patterns like `"*.jpg"` or `"/usr/*/se*"`. Similar to 
 
 Add this dependency to your project.clj:
 
-    [clj-glob "0.1.0"]
+    [org.clojars.hozumi/clj-glob "0.1.0"]
 
 ## License
 
