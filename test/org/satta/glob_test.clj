@@ -211,7 +211,8 @@
 (def deep-fs2
      ["deep2"
       ["src"
-       ["org" "c.clj"]
+       ["org" "c.clj"
+	["satta" "d.clj"]]
        "b.clj"]
       ["lib" "A.jar"
        ["dev" "B.jar"]
@@ -269,8 +270,10 @@
 				     (glob (str dir-name (first deep-fs2)
 						"/"  pattern)))
 				files)
-	     "**clj"     ["a.clj"]
-	     "**/*clj"   ["a.clj" "b.clj" "c.clj"]
-	     "l**"       ["lib" "lab" "lob"]))
+	     "**clj"         ["a.clj"]
+	     "**/*clj"       ["a.clj" "b.clj" "c.clj" "d.clj"]
+	     "**/*/*clj"     ["b.clj" "c.clj" "d.clj"]
+	     "**/*/*/*clj"   ["c.clj" "d.clj"]
+	     "l**"           ["lib" "lab" "lob"]))
       (rm-rf deep-dir2 :silently))
     (rm-rf dir :silently)))

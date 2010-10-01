@@ -70,10 +70,10 @@
 	    m1
 	    ks)))
 
-;;  {0 [:a :b]        {0 [:g]         {0 [:a :b :g]
-;;   1 [:c :d :e]  +   2 [:h :i]   =>  1 [:c :d :e]
-;;   2 [:f]})          3 [:j]}         2 [:f :h :i]
-;;                                     3 [:j]}
+;;  {1 [:a :b]        {1 [:g]         {1 [:a :b :g]
+;;   2 [:c :d :e]  +   3 [:h :i]   =>  2 [:c :d :e]
+;;   3 [:f]})          4 [:j]}         3 [:f :h :i]
+;;                                     4 [:j]}
 
 ;; #<File ./lib> => #<File lib>    "./" looks bad.
 (defn- list-files-nodot[dir]
