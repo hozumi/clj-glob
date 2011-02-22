@@ -26,7 +26,7 @@
 	 "foo.bar"	"foo.bar"	
 	 "foo.*"	"foo.bar"	
 	 "*.bar"	"foo.bar"	
-	 "*foo.*"	"foo.bar"	     
+	 "*foo.*"	"foo.bar"
 	 "foo*"		"foo.bar"	
 	 "*.{bar,baz}"	"foo.bar"	
 	 "*.{bar,baz}"	"foo.baz"	
@@ -39,10 +39,10 @@
 	 "foo/bar.*"	"foo/bar.baz"	
 	 "foo/*.baz"	"foo/bar.baz"	
 	 "*/*"		"foo/bar.baz"	
-	 ".*.foo"	".bar.foo"	     
+	 ".*.foo"	".bar.foo"
 	 ".*bar.foo"	".bar.foo"	
 	 ".*/bar"	".foo/bar"	
-	 "foo/.*"	"foo/.bar"	     
+	 "foo/.*"	"foo/.bar"
 	 "foo.[ch]"	"foo.c"	
 	 "foo.[ch]"	"foo.h"	
 	 "foo.[c-h]"	"foo.c"	
@@ -94,7 +94,7 @@
 ;; glob ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (in-ns 'org.satta.glob-test)
 
-(defn mock-fs
+(defn ^File mock-fs
   "Takes a tree of vectors and returns a minimal, fake file/dir hierarchy.
   Only getName and listFiles will return reliable (fake) results."
   [node & [path]]
@@ -117,9 +117,9 @@
     (is (= fs (File. "fiz")))
     (is (= (seq (.listFiles fs))
            [(File. "fiz/foo") (File. "fiz/bar") (File. "fiz/baz")]))
-    (is (= (seq (.listFiles (first (.listFiles fs))))
+    (is (= (seq (.listFiles ^File (first (.listFiles fs))))
            [(File. "fiz/foo/subfoo1") (File. "fiz/foo/subfoo2")]))
-    (is (= (map #(.getName %) (.listFiles fs))
+    (is (= (map (fn [^File f] (.getName f)) (.listFiles fs))
            ["foo" "bar" "baz"]))))
 
 (def test-root "org.satta.glob-test")
@@ -147,21 +147,21 @@
 
 (deftest test-glob-in-mock
   (testing "Simple, shallow (single-level) matching"
-    (are [pattern files] (= (glob* pattern shallow-fs #(.getName %)) files)
+    (are [pattern files] (= (glob* pattern shallow-fs (fn [^File f] (.getName f))) files)
          "*"            ["cat.jpg" "dog.jpg" "lol.gif"]
          "*.*"          ["cat.jpg" "dog.jpg" "lol.gif"]
          ".*"           [".hidden"]
          "*.jpg"        ["cat.jpg" "dog.jpg"]
          "*.{jpg,gif}"  ["cat.jpg" "dog.jpg" "lol.gif"]))
   (testing "Deep (multi-level) matching"
-    (are [pattern files] (= (glob* pattern deep-fs #(.getName %)) files)
+    (are [pattern files] (= (glob* pattern deep-fs (fn [^File f] (.getName f))) files)
          "*"         ["usr"]
          "usr/*"     ["bin" "lib" "sbin" "share"]
          "usr/*/se*" ["sed" "segedit" "sendmail"]
          "*/*/a*"    ["awk" "arp"]
          "*/*/*/*"   ["man1" "man2" "man3"]))
   (testing "Deep (multi-level) matching"
-    (are [pattern files] (= (glob* pattern deep-fs #(.getPath %))
+    (are [pattern files] (= (glob* pattern deep-fs (fn [^File f] (.getPath f)))
 			    (map #(str test-root "/" %) files))
          "*"         ["usr"]
          "usr/*"     ["usr/bin" "usr/lib" "usr/sbin" "usr/share"]
@@ -169,19 +169,19 @@
          "*/*/a*"    ["usr/bin/awk" "usr/sbin/arp"]
          "*/*/*/*"   ["usr/share/man/man1" "usr/share/man/man2" "usr/share/man/man3"])))
 
-(defn rm-rf [f & [silently]]
+(defn rm-rf [^File f & [silently]]
   (if (.isDirectory f)
     (map #(rm-rf % silently) (.listFiles f)))
   (io/delete-file f silently))
 
 (defn mk-temp-file
-  [f]
+  [^File f]
   (doto f
     (.createNewFile)
     (.deleteOnExit)))
 
 (defn mk-temp-dir
-  [f]
+  [^File f]
   (doto f
     (.mkdir)
     (.deleteOnExit)))
@@ -227,7 +227,7 @@
     (mk-temp-dir dir)
     (let [shallow-dir (mk-tmpfs dir shallow-fs1)]
       (testing "Simple, shallow (single-level) matching"
-	(are [pattern files] (= (map #(.getName %)
+	(are [pattern files] (= (map (fn [^File f] (.getName f))
 				     (glob (str dir-name (first shallow-fs1)
 						"/"  pattern)))
 				files)
@@ -237,14 +237,14 @@
 	     "*.jpg"        ["cat.jpg" "dog.jpg"]
 	     "*.{jpg,gif}"  ["cat.jpg" "dog.jpg" "lol.gif"]))
       (testing "ignore case"
-	(are [pattern files] (= (map #(.getName %)
+	(are [pattern files] (= (map (fn [^File f] (.getName f))
 				     (glob (str dir-name (first shallow-fs1)
 						"/"  pattern) :i))
 				files)
 	     "*.JPG"        ["cat.jpg" "dog.jpg"]
 	     "*.{JPG,GIF}"  ["cat.jpg" "dog.jpg" "lol.gif"]))
       (testing "option treat dot file fairly"
-	(are [pattern files] (= (map #(.getName %)
+	(are [pattern files] (= (map (fn [^File f] (.getName f))
 				     (glob (str dir-name (first shallow-fs1)
 						"/"  pattern) :a))
 				files)
@@ -252,7 +252,7 @@
       (rm-rf shallow-dir :silently))
     (let [deep-dir (mk-tmpfs dir deep-fs1)]
       (testing "Deep (multi-level) matching"
-	(are [pattern files] (= (map #(.getName %)
+	(are [pattern files] (= (map (fn [^File f] (.getName f))
 				     (glob (str dir-name (first deep-fs1)
 						"/"  pattern)))
 				files)
@@ -266,7 +266,7 @@
       (rm-rf deep-dir :silently))
     (let [deep-dir2 (mk-tmpfs dir deep-fs2)]
       (testing "Deep (multi-level) matching2"
-	(are [pattern files] (= (map #(.getName %)
+	(are [pattern files] (= (map (fn [^File f] (.getName f))
 				     (glob (str dir-name (first deep-fs2)
 						"/"  pattern)))
 				files)

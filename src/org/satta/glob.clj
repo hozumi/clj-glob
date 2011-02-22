@@ -1,11 +1,12 @@
 (ns org.satta.glob
   (:require [clojure.java.io :as io :only [file]]
-	    [clojure.set :as set :only [union]])
-  (:import [java.io File]))
+            [clojure.set :as set :only [union]])
+  (:import [java.util.regex Pattern]
+           [java.io File]))
 
 (defn- case-ignore [c]
   (let [i (int c)
-	d (- (int \a) (int \A))]
+        d (- (int \a) (int \A))]
     (cond
      (<= (int \A) i (int \Z)) (str "[" c "|" (char (+ i d)) "]")
      (<= (int \a) i (int \z)) (str "[" c "|" (char (- i d)) "]")
@@ -18,57 +19,57 @@
     s
     (let [case-fix-fn (if ignore-case? case-ignore identity)]
       (loop [st s
-	     re ""
-	     curly-depth 0]
-	(let [c (if-let [c (first st)] (char c) nil)
-	      j (if-let [j (second st)] (char j) nil)
-	      nex (rest st)]
-	  (cond
-	   (= c nil) (re-pattern (str (if (or dot-fair? (= \. (first s)))
-					"" "(?=[^\\.])") re))
-	   (= c \\) (recur (rest nex) (str re c j) curly-depth)
-	   (= c \/) (recur nex (str re (if (= \. j) c "/(?=[^\\.])")) curly-depth)
-	   (= c \*) (recur nex (str re "[^/]*") curly-depth)
-	   (= c \?) (recur nex (str re "[^/]") curly-depth)
-	   (= c \{) (recur nex (str re \() (inc curly-depth))
-	   (= c \}) (recur nex (str re \)) (dec curly-depth))
-	   (and (= c \,) (< 0 curly-depth)) (recur nex (str re \|) curly-depth)
-	   (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (str re \\ c) curly-depth)
-	   :else (recur nex (str re (case-fix-fn c)) curly-depth)))))))
+             re ""
+             curly-depth 0]
+        (let [c (if-let [c (first st)] (char c) nil)
+              j (if-let [j (second st)] (char j) nil)
+              nex (rest st)]
+          (cond
+           (= c nil) (re-pattern (str (if (or dot-fair? (= \. (first s)))
+                                        "" "(?=[^\\.])") re))
+           (= c \\) (recur (rest nex) (str re c j) curly-depth)
+           (= c \/) (recur nex (str re (if (= \. j) c "/(?=[^\\.])")) curly-depth)
+           (= c \*) (recur nex (str re "[^/]*") curly-depth)
+           (= c \?) (recur nex (str re "[^/]") curly-depth)
+           (= c \{) (recur nex (str re \() (inc curly-depth))
+           (= c \}) (recur nex (str re \)) (dec curly-depth))
+           (and (= c \,) (< 0 curly-depth)) (recur nex (str re \|) curly-depth)
+           (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (str re \\ c) curly-depth)
+           :else (recur nex (str re (case-fix-fn c)) curly-depth)))))))
 
 (defn- abs-path?
   "Returns true if the specified path is absolute, false otherwise."
   [path]
   (or
-    (= \/ (first path))      ; /home/qertoip
-    (and (= \: (second path))   ; c:/windows
-	 (= \\ (File/separatorChar))))) ;windows?
+   (= \/ (first path))      ; /home/qertoip
+   (and (= \: (second path))   ; c:/windows
+        (= \\ (File/separatorChar))))) ;windows?
 
-(defn- start-dir
+(defn- ^File start-dir
   "Returns a start directory for recursive traversal as File instance."
   [path]
   (io/file
-    (if (abs-path? path)
-      (if (= \: (second path))
-        (subs path 0 3)        ; c:/
-        "/")                   ; /
-      ".")))                   ; .
+   (if (abs-path? path)
+     (if (= \: (second path))
+       (subs path 0 3)        ; c:/
+       "/")                   ; /
+     ".")))                   ; .
 
 (defn- first-slash
   "Returns index of the first slash, plus 1"
-  [s]
+  [^String s]
   (inc (.indexOf s "/")))
 
 (defn- val-merge [m1 m2]
   (let [ks (set/union (set (keys m1))
-		  (set (keys m2)))]
+                      (set (keys m2)))]
     (reduce (fn [m k]
-	      (let [m1v (get m1 k [])]
-		(if-let [m2v (m2 k)]
-		  (assoc m k (apply conj m1v m2v))
-		  (assoc m k m1v))))
-	    m1
-	    ks)))
+              (let [m1v (get m1 k [])]
+                (if-let [m2v (m2 k)]
+                  (assoc m k (apply conj m1v m2v))
+                  (assoc m k m1v))))
+            m1
+            ks)))
 
 ;;  {1 [:a :b]        {1 [:g]         {1 [:a :b :g]
 ;;   2 [:c :d :e]  +   3 [:h :i]   =>  2 [:c :d :e]
@@ -76,47 +77,48 @@
 ;;                                     4 [:j]}
 
 ;; #<File ./lib> => #<File lib>    "./" looks bad.
-(defn- list-files-nodot[dir]
-  (map #(io/file (.getName %)) (.listFiles dir)))
+(defn- list-files-nodot[^File dir]
+  (map (fn [^File f] (io/file (.getName f))) (.listFiles dir)))
 
-(defn- depth-map [dir re]
-  (letfn [(inner [dir re]
-		 (let [childs (filter #(re-matches re (.getName %)) (.listFiles dir))]
-		   (if (= childs ())
-		     {1 [dir]}
-		     (let [rank-childs (reduce val-merge 
-					       (map #(inner % re) childs))]
-		       (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])))))]
+(defn- depth-map [^File dir ^Pattern re]
+  (letfn [(inner [^File dir re]
+                 (let [childs (filter (fn [^File f] (re-matches re (.getName f)))
+                                      (.listFiles dir))]
+                   (if (= childs ())
+                     {1 [dir]}
+                     (let [rank-childs (reduce val-merge 
+                                               (map #(inner % re) childs))]
+                       (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])))))]
     (let [childs (if (= (.getPath dir) ".")
-		   (list-files-nodot dir)
-		   (.listFiles dir))
-	  childs (filter #(re-matches re (.getName %)) childs)
-	  amI?   (or (= (.toString re) "(?=[^\\.])[^/]*[^/]*")
-		     (re-matches re (.getName dir)))]
+                   (list-files-nodot dir)
+                   (.listFiles dir))
+          childs (filter (fn [^File f] (re-matches re (.getName f))) childs)
+          amI?   (or (= (.toString re) "(?=[^\\.])[^/]*[^/]*")
+                     (re-matches re (.getName dir)))]
       (if (= childs ())
-	(if amI? {1 [dir]} {})
-	(let [rank-childs (reduce val-merge 
-				  (map #(inner % re) childs))]
-	  (if amI?
-	    (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])
-	    rank-childs))))))
+        (if amI? {1 [dir]} {})
+        (let [rank-childs (reduce val-merge 
+                                  (map #(inner % re) childs))]
+          (if amI?
+            (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])
+            rank-childs))))))
 
-(defn- matching [re dir n]
+(defn- matching [^Pattern re ^File dir n]
   (cond
    (= re ".")  [dir]
    (= re "..") [(if (= "." (.getPath dir)) ; "./../" looks bad.
-		  (io/file "..")
-		  (io/file dir ".."))]
+                  (io/file "..")
+                  (io/file dir ".."))]
    (= re "~")  [(io/file (System/getProperty "user.home"))]
    (<= 0 (.indexOf (.toString re) "[^/]*[^/]*")) ; **
    (let [d-map (depth-map dir re)
-	 pass  (filter #(<= n (key %)) d-map)]
+         pass  (filter #(<= n (key %)) d-map)]
      (apply concat (vals pass)))
    :else
    (let [childs (if (= (.getPath dir) ".")
-		  (list-files-nodot dir)
-		  (.listFiles dir))]
-     (filter #(re-matches re (.getName %)) childs))))
+                  (list-files-nodot dir)
+                  (.listFiles dir))]
+     (filter (fn [^File f] (re-matches re (.getName f))) childs))))
 
 (defn- regex-dirs-match [dirs [re n]]
   (mapcat #(matching re % n) dirs))
@@ -126,19 +128,19 @@
   Ignores dot files unless explicitly included.
 
   Examples: (glob \"*.{jpg,gif}\") (glob \".*\") (glob \"/usr/*/se*\")"
-  [pattern & opt]
+  [^String pattern & opt]
   (let [ignore-case? (some #{:i} opt)
-	dot-fair? (some #{:a} opt)
-	ret-path? (some #{:s} opt)
-	abs-path? (abs-path? pattern)
+        dot-fair? (some #{:a} opt)
+        ret-path? (some #{:s} opt)
+        abs-path? (abs-path? pattern)
         start-dir (start-dir pattern)
         splitted  (.split (if abs-path? (subs pattern (first-slash pattern)) pattern) "/")
         patterns  (map #(glob->regex % ignore-case? dot-fair?) splitted)
-	;;[#"foo" #"bar" #"baz"] -> [[#"foo" 2] [#"bar" 1] [#"baz" 0]]
-	indexed-patterns (map #(identity [%1 %2])
-			      patterns
-			      (range (- (count patterns) 1) -1 -1))
-	result   (reduce regex-dirs-match [start-dir] indexed-patterns)]
+        ;;[#"foo" #"bar" #"baz"] -> [[#"foo" 2] [#"bar" 1] [#"baz" 0]]
+        indexed-patterns (map #(identity [%1 %2])
+                              patterns
+                              (range (- (count patterns) 1) -1 -1))
+        result   (reduce regex-dirs-match [start-dir] indexed-patterns)]
     (if ret-path?
-      (map #(.getPath %) result)
+      (map (fn [^File f] (.getPath f)) result)
       result)))
