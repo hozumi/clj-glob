@@ -65,34 +65,30 @@
          "foo.[c-h]"   "foo.b"
          "foo.[c-h]"   "foo.i")))
 
-(in-ns 'org.satta.glob)
-(use '[clojure.test])
-
 (deftest test-abs-path?
   (testing "abs-path? function test"
-    (are [expected path] (= expected (abs-path? path))
-	      true "/"
-	      true "/user/home"
-	      false "*"
-	      false "~"
-	      false "lib")
+    (are [expected path] (= expected (@#'org.satta.glob/abs-path? path))
+            true "/"
+            true "/user/home"
+            false "*"
+            false "~"
+            false "lib")
     (if (= \\ (File/separatorChar))
       (testing "abs-path? test on windows"
-	(are [expected path] (= expected (abs-path? path))
-		  true "c:/clojure"
-		  true "d:/*"
-		  true "/home"
-		  false "~"
-		  false "lib")))))
+      (are [expected path] (= expected (@#'org.satta.glob/abs-path? path))
+              true "c:/clojure"
+              true "d:/*"
+              true "/home"
+              false "~"
+              false "lib")))))
 
 (deftest test-start-dir
-  (are [expected path] (= expected (.getPath (start-dir path)))
-	    "/"  "/usr/bin/*"
-	    "."  "l*/*"
-	    "."  "../"))
+  (are [expected path] (= expected (.getPath (@#'org.satta.glob/start-dir path)))
+          "/"  "/usr/bin/*"
+          "."  "l*/*"
+          "."  "../"))
 
 ;; glob ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(in-ns 'org.satta.glob-test)
 
 (defn ^File mock-fs
   "Takes a tree of vectors and returns a minimal, fake file/dir hierarchy.
@@ -100,15 +96,15 @@
   [node & [path]]
   (if (vector? node)
     (let [dir-name (first node)
-	  new-path (if path
-		     (str path (if (not= path "/") "/") dir-name)
-		     dir-name)
-	  childs (into-array File (map #(mock-fs % new-path) (rest node)))]
+        new-path (if path
+                 (str path (if (not= path "/") "/") dir-name)
+                 dir-name)
+        childs (into-array File (map #(mock-fs % new-path) (rest node)))]
       (if path
-	(proxy [File] [path dir-name]
-	  (listFiles [] childs))
-	(proxy [File] [dir-name]
-	  (listFiles [] childs))))
+      (proxy [File] [path dir-name]
+        (listFiles [] childs))
+      (proxy [File] [dir-name]
+        (listFiles [] childs))))
     (proxy [File] [path node]
       (listFiles [] nil))))
 
@@ -162,7 +158,7 @@
          "*/*/*/*"   ["man1" "man2" "man3"]))
   (testing "Deep (multi-level) matching"
     (are [pattern files] (= (glob* pattern deep-fs (fn [^File f] (.getPath f)))
-			    (map #(str test-root "/" %) files))
+                      (map #(str test-root "/" %) files))
          "*"         ["usr"]
          "usr/*"     ["usr/bin" "usr/lib" "usr/sbin" "usr/share"]
          "usr/*/se*" ["usr/bin/sed" "usr/bin/segedit" "usr/sbin/sendmail"]

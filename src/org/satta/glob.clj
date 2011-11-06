@@ -4,7 +4,7 @@
   (:import [java.util.regex Pattern]
            [java.io File]))
 
-(defn glob->regex
+(defn- glob->regex
   "Takes a glob-format string and returns a regex."
   [s ignore-case? dot-fair?]
   (or (#{".." "." "~"} s)
