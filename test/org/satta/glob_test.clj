@@ -142,7 +142,7 @@
   "Glob with a fake filesystem. Also returns seq of file names rather
   than File instances."
   [pattern start-dir func]
-  (binding [io/file (fn [_] start-dir)]
+  (with-redefs [io/file (fn [_] start-dir)]
     (map func (glob pattern))))
 
 (deftest test-glob-in-mock
