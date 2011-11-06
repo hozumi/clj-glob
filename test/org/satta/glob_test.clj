@@ -165,11 +165,6 @@
          "*/*/a*"    ["usr/bin/awk" "usr/sbin/arp"]
          "*/*/*/*"   ["usr/share/man/man1" "usr/share/man/man2" "usr/share/man/man3"])))
 
-(defn rm-rf [^File f & [silently]]
-  (if (.isDirectory f)
-    (map #(rm-rf % silently) (.listFiles f)))
-  (io/delete-file f silently))
-
 (defn mk-temp-file
   [^File f]
   (doto f
@@ -219,7 +214,6 @@
   (let [dir-name (str (System/getProperty "java.io.tmpdir")
 		      "org.satta.glob-test/")
 	dir  (io/file dir-name)]
-    (rm-rf dir :silently)
     (mk-temp-dir dir)
     (let [shallow-dir (mk-tmpfs dir shallow-fs1)]
       (testing "Simple, shallow (single-level) matching"
@@ -244,8 +238,7 @@
 				     (glob (str dir-name (first shallow-fs1)
 						"/"  pattern) :a))
 				files)
-	     "*"            [".hidden" "cat.jpg" "dog.jpg" "lol.gif"]))
-      (rm-rf shallow-dir :silently))
+	     "*"            [".hidden" "cat.jpg" "dog.jpg" "lol.gif"])))
     (let [deep-dir (mk-tmpfs dir deep-fs1)]
       (testing "Deep (multi-level) matching"
 	(are [pattern files] (= (map (fn [^File f] (.getName f))
@@ -258,8 +251,7 @@
 	     "*/*/a*"    ["awk" "arp"]
 	     "**/s*a*"   ["share" "samba" "sendmail"]
 	     "**AA"      []
-	     "*/*/*/*"   ["man1" "man2" "man3"]))
-      (rm-rf deep-dir :silently))
+	     "*/*/*/*"   ["man1" "man2" "man3"])))
     (let [deep-dir2 (mk-tmpfs dir deep-fs2)]
       (testing "Deep (multi-level) matching2"
 	(are [pattern files] (= (map (fn [^File f] (.getName f))
@@ -270,6 +262,4 @@
 	     "**/*clj"       ["a.clj" "b.clj" "c.clj" "d.clj"]
 	     "**/*/*clj"     ["b.clj" "c.clj" "d.clj"]
 	     "**/*/*/*clj"   ["c.clj" "d.clj"]
-	     "l**"           ["lib" "lab" "lob"]))
-      (rm-rf deep-dir2 :silently))
-    (rm-rf dir :silently)))
+	     "l**"           ["lib" "lab" "lob"])))))
