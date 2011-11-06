@@ -4,25 +4,15 @@
   (:import [java.util.regex Pattern]
            [java.io File]))
 
-(defn- case-ignore [c]
-  (let [i (int c)
-        d (- (int \a) (int \A))]
-    (cond
-     (<= (int \A) i (int \Z)) (str "[" c "|" (char (+ i d)) "]")
-     (<= (int \a) i (int \z)) (str "[" c "|" (char (- i d)) "]")
-     :else c)))
-
-(defn- glob->regex
+(defn glob->regex
   "Takes a glob-format string and returns a regex."
   [s ignore-case? dot-fair?]
-  (if (or (= ".." s) (= "." s) (= "~" s))
-    s
-    (let [case-fix-fn (if ignore-case? case-ignore identity)]
+  (or (#{".." "." "~"} s)
       (loop [st s
-             re ""
+             re (if ignore-case? "(?i)" "")
              curly-depth 0]
-        (let [c (if-let [c (first st)] (char c) nil)
-              j (if-let [j (second st)] (char j) nil)
+        (let [c (when-let [c (first st)] (char c))
+              j (when-let [j (second st)] (char j))
               nex (rest st)]
           (cond
            (= c nil) (re-pattern (str (if (or dot-fair? (= \. (first s)))
@@ -35,7 +25,7 @@
            (= c \}) (recur nex (str re \)) (dec curly-depth))
            (and (= c \,) (< 0 curly-depth)) (recur nex (str re \|) curly-depth)
            (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (str re \\ c) curly-depth)
-           :else (recur nex (str re (case-fix-fn c)) curly-depth)))))))
+           :else (recur nex (str re c) curly-depth))))))
 
 (defn- abs-path?
   "Returns true if the specified path is absolute, false otherwise."
