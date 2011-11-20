@@ -9,23 +9,24 @@
   [s ignore-case? dot-fair?]
   (or (#{".." "." "~"} s)
       (loop [st s
-             re (if ignore-case? "(?i)" "")
+             regs [(when ignore-case? "(?i)")
+			 (if-not (or dot-fair? (= \. (first s))) "(?=[^\\.])")]
              curly-depth 0]
-        (let [c (when-let [c (first st)] (char c))
-              j (when-let [j (second st)] (char j))
+        (let [c (first st)
+              j (second st)
               nex (rest st)]
           (cond
-           (= c nil) (re-pattern (str (if (or dot-fair? (= \. (first s)))
-                                        "" "(?=[^\\.])") re))
-           (= c \\) (recur (rest nex) (str re c j) curly-depth)
-           (= c \/) (recur nex (str re (if (= \. j) c "/(?=[^\\.])")) curly-depth)
-           (= c \*) (recur nex (str re "[^/]*") curly-depth)
-           (= c \?) (recur nex (str re "[^/]") curly-depth)
-           (= c \{) (recur nex (str re \() (inc curly-depth))
-           (= c \}) (recur nex (str re \)) (dec curly-depth))
-           (and (= c \,) (< 0 curly-depth)) (recur nex (str re \|) curly-depth)
-           (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (str re \\ c) curly-depth)
-           :else (recur nex (str re c) curly-depth))))))
+           (= c nil) (re-pattern (apply str regs))
+           (= c \\) (recur (rest nex) (conj regs c j) curly-depth)
+           (= c \/) (recur nex (conj regs (if (or dot-fair? (= j \.))
+							     c "/(?=[^\\.])")) curly-depth)
+           (= c \*) (recur nex (conj regs "[^/]*") curly-depth)
+           (= c \?) (recur nex (conj regs "[^/]") curly-depth)
+           (= c \{) (recur nex (conj regs \() (inc curly-depth))
+           (= c \}) (recur nex (conj regs \)) (dec curly-depth))
+           (and (= c \,) (< 0 curly-depth)) (recur nex (conj regs \|) curly-depth)
+           (#{\. \( \) \| \+ \^ \$ \@ \%} c) (recur nex (conj regs \\ c) curly-depth)
+           :else (recur nex (conj regs c) curly-depth))))))
 
 (defn- abs-path?
   "Returns true if the specified path is absolute, false otherwise."
