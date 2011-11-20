@@ -10,7 +10,7 @@
   (or (#{".." "." "~"} s)
       (loop [st s
              regs [(when ignore-case? "(?i)")
-			 (if-not (or dot-fair? (= \. (first s))) "(?=[^\\.])")]
+                   (if-not (or dot-fair? (= \. (first s))) "(?=[^\\.])")]
              curly-depth 0]
         (let [c (first st)
               j (second st)
@@ -19,7 +19,7 @@
            (= c nil) (re-pattern (apply str regs))
            (= c \\) (recur (rest nex) (conj regs c j) curly-depth)
            (= c \/) (recur nex (conj regs (if (or dot-fair? (= j \.))
-							     c "/(?=[^\\.])")) curly-depth)
+                                            c "/(?=[^\\.])")) curly-depth)
            (= c \*) (recur nex (conj regs "[^/]*") curly-depth)
            (= c \?) (recur nex (conj regs "[^/]") curly-depth)
            (= c \{) (recur nex (conj regs \() (inc curly-depth))
@@ -77,7 +77,7 @@
                                       (.listFiles dir))]
                    (if (= childs ())
                      {1 [dir]}
-                     (let [rank-childs (reduce val-merge 
+                     (let [rank-childs (reduce val-merge
                                                (map #(inner % re) childs))]
                        (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])))))]
     (let [childs (if (= (.getPath dir) ".")
@@ -88,7 +88,7 @@
                      (re-matches re (.getName dir)))]
       (if (= childs ())
         (if amI? {1 [dir]} {})
-        (let [rank-childs (reduce val-merge 
+        (let [rank-childs (reduce val-merge
                                   (map #(inner % re) childs))]
           (if amI?
             (assoc rank-childs (inc (apply max (keys rank-childs))) [dir])
